@@ -40,6 +40,16 @@ class TerminalShell(object):
             import readline
             self.using_readline = sys.stdin.isatty() and sys.stdout.isatty()
             self.ansi_color_re = re.compile("\033\\[[0-9;]+m")
+            # Try to enable paren matching if we're using readline.
+            # This functionality is pretty well hidden, and Python
+            # doesn't expose it, so we need to use ctypes to get at
+            # it. This is a huge hack.
+            if self.using_readline:
+                import ctypes, ctypes.util
+                libreadline = ctypes.CDLL(ctypes.util.find_library("readline"))
+                libreadline._rl_enable_paren_matching.restype = None
+                libreadline._rl_enable_paren_matching.argtypes = [ctypes.c_int]
+                libreadline._rl_enable_paren_matching(1)
         except ImportError:
             pass
 
