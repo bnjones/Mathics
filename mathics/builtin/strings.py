@@ -4,6 +4,8 @@
 String functions
 """
 
+import re
+
 from mathics.builtin.base import BinaryOperator, Builtin, Test
 from mathics.core.expression import (Expression, Symbol, String, Integer,
                                      from_python)
@@ -223,7 +225,7 @@ class StringReplace(Builtin):
         # Check second argument
         def check_rule(r):
             tmp = [s.get_string_value() for s in r.get_leaves()]
-            if not (r.has_form('Rule', None) and len(tmp) == 2 and
+            if not (r.has_form('Rule', 2) and
                     all(r is not None for r in tmp)):
                 evaluation.message('StringReplace', 'srep', r)
                 return None
@@ -231,17 +233,19 @@ class StringReplace(Builtin):
 
         if rule.has_form('List', None):
             tmp_rules = rule.get_leaves()
-            py_rules = []
+            py_rules = {}
             for r in tmp_rules:
                 tmp = check_rule(r)
                 if tmp is None:
                     return None
-                py_rules.append(tmp)
+                orig, repl = tmp
+                py_rules[orig] = repl
         else:
             tmp = check_rule(rule)
             if tmp is None:
                 return None
-            py_rules = [tmp]
+            orig, repl = tmp
+            py_rules = {orig: repl}
 
         if n is None:
             return (py_string, py_rules)
@@ -254,6 +258,9 @@ class StringReplace(Builtin):
                 return None
             return (py_string, py_rules, py_n)
 
+    def rules_to_regexp(self, rules):
+        return re.compile("|".join(re.escape(k) for k in rules.keys()))
+
     def apply(self, string, rule, evaluation):
         'StringReplace[string_, rule_]'
 
@@ -261,11 +268,10 @@ class StringReplace(Builtin):
         if args is None:
             return None
         (py_string, py_rules) = args
+        regexp = self.rules_to_regexp(py_rules)
 
         def do_replace(s):
-            for sp in py_rules:
-                s = s.replace(sp[0], sp[1])
-            return s
+            return regexp.sub(lambda m: py_rules[m.group(0)], s)
 
         if isinstance(py_string, list):
             result = [do_replace(s) for s in py_string]
@@ -283,13 +289,11 @@ class StringReplace(Builtin):
             return None
         (py_string, py_rules, py_n) = args
 
+        regexp = self.rules_to_regexp(py_rules)
+
         def do_replace(s):
-            for sp in py_rules:
-                if py_n is None:
-                    s = s.replace(sp[0], sp[1])
-                else:
-                    s = s.replace(sp[0], sp[1], py_n)
-            return s
+            return regexp.sub(lambda m: py_rules[m.group(0)], s,
+                              count = 0 if py_n is None else py_n)
 
         if isinstance(py_string, list):
             result = [do_replace(s) for s in py_string]
