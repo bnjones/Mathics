@@ -1676,3 +1676,16 @@ class Piecewise(SympyFunction):
         if str(args[-1].leaves[1]).startswith('_True__Dummy_'):
             args[-1].leaves[1] = Symbol('True')
         return [args]
+
+
+class Accumulate(Builtin):
+    """
+    <dl>
+    <dt>'Accumulate[{$e1$, ..., $eN$}]'
+    <dd>returns {$e1$, $e1$ + $e2$, ..., $e1$ + $e2$ + ... + $eN$}.
+    </dl>
+    """
+
+    rules = {
+        'Accumulate[list_]': 'Rest[FoldList[Plus, 0, list]]'
+    }

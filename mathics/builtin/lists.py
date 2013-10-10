@@ -1907,3 +1907,75 @@ class Complement(Builtin):
                                              evaluation, same_test))
         result.sort()
         return result
+
+
+class Reverse(Builtin):
+    """
+    <dl>
+    <dt>'Reverse[$h$[$e1$, ..., $eN$]'
+    <dd>reverses the order of the elements in $h$, returning $h$[$eN$,
+    ..., $e1$].
+    </dl>
+    """
+
+    def apply(self, expr, evaluation):
+        'Reverse[expr_]'
+
+        if expr.is_atom():
+            return evaluation.message('Reverse', 'normal')
+        return Expression(expr.get_head(), *reversed(expr.get_leaves()))
+
+
+class FoldList(Builtin):
+    """
+    <dl>
+    <dt>'FoldList[$f$, $start$, $list$]'
+    <dd>builds up a result list beginning with $start$, with
+    subsequent elements found by applying $f$ to the previous element
+    of the result and the next element of $list$.
+    </dl>
+
+    >> FoldList[f, x, {a, b, c}]
+     = {x, f[x, a], f[f[x, a], b], f[f[f[x, a], b], c]}
+
+    >> FoldList[Plus, 0, Range[10]]
+     = {0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55}
+    """
+
+    def apply(self, f, x, list, evaluation):
+        'FoldList[f_, x_, list_]'
+
+        if list.is_atom():
+            return evaluation.message('FoldList', 'normal')
+
+        result = [x]
+        for e in list.get_leaves():
+            x = Expression(f, x, e)
+            result.append(x)
+
+        return Expression(list.get_head(), *result)
+
+
+class Fold(Builtin):
+    """
+    <dl>
+    <dt>'Fold[$f$, $x$, $list$]'
+    <dd>is equivalent to 'Last[FoldList[$f$, $x$, $list$]]'.
+    </dl>
+
+    'Fold' is more efficient than 'Last[FoldList[...]]', because it
+    avoids building up intermediate results.
+
+    >> Fold[Plus, 0, Range[10]] == Sum[x, {x, 10}]
+     = True
+    """
+
+    def apply(self, f, x, list, evaluation):
+        'Fold[f_, x_, list_]'
+
+        if list.is_atom():
+            return evaluation.message('FoldList', 'normal')
+
+        for e in list.get_leaves():
+            x = Expression(f, x, e)
+        return x
