@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 
 from mathics.builtin.base import Builtin
-from mathics.core.expression import Expression, Integer
+from mathics.core.expression import Expression, Integer, Symbol
 from mathics.core.convert import from_sympy
 
 import sympy
@@ -488,3 +488,93 @@ class Variables(Builtin):
         variables = Expression('List', *variables)
         variables.sort()        # MMA doesn't do this
         return variables
+
+
+def invalid_var(var, evaluation):
+    return ((var.is_atom() and not var.is_symbol()) or
+            var.get_head_name() in ('Plus', 'Times', 'Power') or
+            'Constant' in var.get_attributes(evaluation.definitions))
+
+
+class PolynomialQ(Builtin):
+    """
+    <dl>
+    <dt>'PolynomialQ[$expr$, $x$]'
+    <dd>returns 'True' if $expr$ is a polynomial in the variable
+    $x$.
+    <dt>'PolynomialQ[$expr$, {$x$, $y$, ...}]'
+    <dd>returns 'True' if $expr$ is a polynomial in all of the
+    specified variables.
+    </dl>
+
+    >> {PolynomialQ[x^2/y + z, x], PolynomialQ[x^2/y + z, y]}
+     = {True, False}
+
+    Multiple variables can be specified, which can be unknown
+    functions:
+    >> PolynomialQ[f[x]^2 + y f[x] + c, {y, f[x]}]
+     = True
+
+    #> PolynomialQ[a x^2 + b x + c, {}]
+     = True
+    #> PolynomialQ[x^2 (a^3 / c) + a Exp[d], {x, a}]
+     = True
+    """
+
+    def apply(self, expr, vars, evaluation):
+        'PolynomialQ[expr_, vars_]'
+
+        vars = vars.get_leaves() if vars.has_form('List', None) else [vars]
+
+        for var in vars:
+            if invalid_var(var, evaluation):
+                return evaluation.message('PolynomialQ', 'ivar', var)
+
+        try:
+            sympy_poly, _ = sympy.poly_from_expr(expr.to_sympy())
+            for var in vars:
+                # This raises an exception if the expression isn't a
+                # polynomial in the variable specified by gen=
+                sympy_poly.degree(gen=var.to_sympy())
+            return Symbol('True')
+        except sympy.PolynomialError:
+            return Symbol('False')
+
+
+class CoefficientList(Builtin):
+    # TODO: CoefficientList[poly, {var1, var2, ...}]
+    """
+    <dl>
+    <dt>'CoefficientList[$expr$, $var$]'
+    <dd>gives a list of all coefficients of the polynomial $expr$ in
+    the variable $var$.
+    </dl>
+
+    >> CoefficientList[a x^2 + b x + c, x]
+     = {a, b, c}
+
+    $expr$ is automatically expanded:
+    >> CoefficientList[(x+2)(x-5), x]
+     = {-10, -3, 1}
+
+    #> CoefficientList[a x^2 + b x + c, a]
+     = {x^2, b x + c}
+    #> CoefficientList[x^4 + a x, x]
+     = {0, a, 0, 0, 1}
+    """
+
+    # Note: Because of the way SymPy treats polynomials, something
+    # like CoefficientList[a x^2 == b x, x] works, whereas Mathematica
+    # returns {a x^2 == b x}.
+
+    def apply(self, expr, var, evaluation):
+        'CoefficientList[expr_, var_]'
+
+        if invalid_var(var, evaluation):
+            return evaluation.message('CoefficientList', 'ivar', var)
+
+        try:
+            p = sympy.poly(expr.to_sympy(), var.to_sympy())
+            return from_sympy(p.all_coeffs()[::-1])
+        except sympy.PolynomialError:
+            return evaluation.message('CoefficientList', 'poly', expr)

@@ -1012,6 +1012,7 @@ class General(Builtin):
         'partw': "Part `1` of `2` does not exist.",
         'plld': "Endpoints in `1` must be distinct machine-size real numbers.",
         'plln': "Limiting value `1` in `2` is not a machine-size real number.",
+        'poly': "`1` is not a polynomial.",
         'pspec': ("Part specification `1` is neither an integer nor "
                   "a list of integer."),
         'seqs': "Sequence specification expected, but got `1`.",
