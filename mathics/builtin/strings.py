@@ -186,6 +186,8 @@ class StringReplace(Builtin):
     #> StringReplace["abcabc", "a" -> "b", x]
      : Non-negative integer or Infinity expected at position 3 in StringReplace[abcabc, a -> b, x].
      = StringReplace[abcabc, a -> b, x]
+    #> StringReplace["a", {"a" -> "b", "b" -> "c"}]
+     = b
     """
 
     attributes = ('Protected')

@@ -1916,6 +1916,11 @@ class Reverse(Builtin):
     <dd>reverses the order of the elements in $h$, returning $h$[$eN$,
     ..., $e1$].
     </dl>
+
+    >> Reverse[{a, b, c, d, e, f}]
+     = {f, e, d, c, b, a}
+    >> Reverse[Characters["backwards"]] // StringJoin // InputForm
+     = "sdrawkcab"
     """
 
     def apply(self, expr, evaluation):

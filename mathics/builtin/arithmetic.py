@@ -1684,6 +1684,9 @@ class Accumulate(Builtin):
     <dt>'Accumulate[{$e1$, ..., $eN$}]'
     <dd>returns {$e1$, $e1$ + $e2$, ..., $e1$ + $e2$ + ... + $eN$}.
     </dl>
+
+    >> Accumulate[Range[10]]
+     = {1, 3, 6, 10, 15, 21, 28, 36, 45, 55}
     """
 
     rules = {
